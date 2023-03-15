@@ -47,7 +47,7 @@
 	transform: translateY(-50%) translateX(50%);
 }
 
-.round {
+.ball {
 	visibility: hidden;
 	position: absolute;
 	background-color: white;
@@ -60,9 +60,9 @@
 	transform: translateY(-50%) translateX(-50%);
 }
 
-.round_animated {
+.animated {
 	visibility: visible;
-	transition: 5s;
+	transition: 2s;
 	transition-timing-function: linear;
 }
 

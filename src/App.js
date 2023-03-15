@@ -1,37 +1,71 @@
 import './App.css';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
+
+const TRANSITION_TIME_BALL = 2000;
+const COOLDOWN_TIME = 5000;
 
 function App() {
-	let [timeout, setT] = useState(0);
-	let ref1 = useRef();
-	let ref2 = useRef();
+	let [cooldownClock, setCooldownClock] = useState(0);
+
+	let refBlockLeft = useRef();
 	let ref3 = useRef();
-
-	let [isAnimated, animate] = useState(false);
-
-	let [roundStyles, setRoundStyles] = useState(void 0);
+	let refBall = useRef();
+	let timers = useRef({
+		cooldown: null,
+		trans1: null,
+		trans2: null,
+	});
 
 	function onClickStart() {
-		startTransition();
+		transition();
 	}
 
-	function startTransition() {
-		let top = ref1.current.offsetTop / ref3.current.clientHeight * 100 + '%';
+	function initialStyles() {
+		refBall.current.style.visibility = 'hidden';
+		refBall.current.style.transition = void 0;
+		refBall.current.style.top = 0;
+		refBall.current.style.left = 0;
+	};
 
-		setRoundStyles({
-			top: top,
-			left: '0%',
-		});
+	function transition() {
+		clearTimeout(timers.current.trans1);
+		clearTimeout(timers.current.trans2);
 
-		setT(5);
+		initialStyles();
 
-		let timer = setInterval(() => {
-			setT((t) => {
+		// Установить обратный отсчет
+		cooldown(COOLDOWN_TIME);
+
+		let top = refBlockLeft.current.offsetTop / ref3.current.clientHeight * 100 + '%';
+
+		// Установить стартовое место для круга
+		refBall.current.style.visibility = 'visible';
+		refBall.current.style.top = top;
+		refBall.current.style.left = '0%';
+
+		// Установить пункт назначения анимации
+		timers.current.trans1 = setTimeout(() => {
+			refBall.current.style.transition = TRANSITION_TIME_BALL / 1000 + 's';
+			refBall.current.style.top = '50%';
+			refBall.current.style.left = '100%';
+		}, 0);
+
+		// Завершить анимацию круга через время TRANSITION_TIME_BALL
+		timers.current.trans2 = setTimeout(() => {
+			initialStyles();
+		}, TRANSITION_TIME_BALL);
+	};
+
+	function cooldown(t) {
+		clearInterval(timers.current.cooldown);
+
+		setCooldownClock(t / 1000);
+
+		timers.current.cooldown = setInterval(() => {
+			setCooldownClock((t) => {
 				if (!t) {
-					clearInterval(timer);
-					setRoundStyles(void 0);
-					animate(false);
+					clearInterval(timers.current.cooldown);
 					return t;
 				}
 
@@ -40,52 +74,32 @@ function App() {
 		}, 1000);
 	}
 
-	useEffect(() => {
-		if (roundStyles) {
-			animate(true);
-		}
-	}, [roundStyles]);
-
-	useEffect(() => {
-		if (!roundStyles)
-			return;
-
-		if (isAnimated) {
-			setRoundStyles({
-				top: '50%',
-				left: '100%',
-			});
-		}
-	}, [isAnimated]);
-
-	let buttonProps = {};
-
-	if (timeout) {
-		buttonProps.disabled = true;
-	}
-
-	let roundClassName = 'round';
-
-	if (isAnimated) {
-		roundClassName += ' round_animated';
-	}
-
 	return (
 		<div>
 			<div className="outer" ref={ref3}>
-				<div className='block left' ref={ref1}></div>
-				<div className='block right' ref={ref2}></div>
-				<div className={roundClassName} style={roundStyles} />
+				<CompBlock side="left" _ref={refBlockLeft} />
+				<CompBlock side="right" />
+				<Ball _ref={refBall} />
+				<CompButton onClick={onClickStart} disabled={cooldownClock}>
+					start {cooldownClock}
+				</CompButton>
 			</div>
-			<button onClick={onClickStart} {...buttonProps}>
-				start {timeout}
-			</button>
 		</div>
 	);
 }
 
+function Ball(props) {
+	let roundClassName = 'ball';
+
+	if (props.isAnimated) {
+		roundClassName += ' animated';
+	}
+
+	return <div className={roundClassName} ref={props._ref} />
+}
+
 function CompBlock(props) {
-	<div className={'block ' + props.side} ref={props.ref}></div>
+	return <div className={'block ' + props.side} ref={props._ref}></div>
 }
 
 function CompButton(props) {
@@ -93,7 +107,7 @@ function CompButton(props) {
 		disabled: props.disabled || void 0
 	};
 
-	<button onClick={props.onClick} {...buttonProps}>
+	return <button onClick={props.onClick} {...buttonProps}>
 		{
 			props.children
 		}
